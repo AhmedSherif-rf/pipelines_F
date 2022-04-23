@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+		     tools {
+			     nodejs "nodejs-10-15"
+			 }
+       environment {
+		VERSION = "${env.BUILD_NUMBER}"
+		packageJSON = readJSON file: 'package.json'
+		packageJSONVersion = "${packageJSON.version}"
+		major = packageJSONVersion.substring(0,packageJSONVersion.indexOf("."))
+        minor = packageJSONVersion.substring(packageJSONVersion.indexOf(".") + 1).substring(0, packageJSONVersion.indexOf("."))
+        major_minor = "$major.$minor"
+       }
+       
+    stages {
+
+        stage('Build') {
+			 steps {
+			     sh 'nodejs -v'
+				 sh 'npm -v'
+			     sh 'npm config set registry http://192.168.3.163:8081/repository/npm/'
+				 sh 'npm config list'
+			     sh 'npm install'
+			     
+			     // Increment version number of Package.JSON file.
+			     sh 'npm --no-git-tag-version version patch --force'
+			     
+				 sh 'npm run build:prod'	
+				 
+			    // Push the changes of Package.JSON file.
+                withCredentials([usernamePassword(credentialsId: 'e538ccc4-c5c8-452a-a99b-dbbb5ec4050c', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]){    
+                    sh('''
+                        git commit -am "Updated Build Number by Jenkins"
+                        git config --local credential.helper "!f() { echo username=\\$GIT_USERNAME; echo password=\\$GIT_PASSWORD; }; f"
+                        git push origin HEAD:staging
+                        git config --unset credential.helper
+                    ''')
+                }
+			 }			
+        }
+	    stage('deploy') {	
+            steps {
+					echo "Jenkins Build Number ${env.VERSION}"
+                    echo "packageJSONVersion ${packageJSONVersion}";
+                    echo "Next release ${params.next_release}";
+                    echo "Major_minor ${major_minor}";
+
+    
+					sh "ssh root@192.168.3.46 mkdir -p /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+                    sh "cd /var/jenkins_home/workspace/Smart2Go_Front_Staging/ && tar zcvf webapp.tar.gz webapp/ "					
+					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Staging/webapp.tar.gz root@192.168.3.46:/home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh root@192.168.3.46 tar xvfz /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh root@192.168.3.46 rm -rf /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+					sh "rm -rf /var/jenkins_home/workspace/Smart2Go_Front_Staging/webapp.tar.gz"
+					sh """
+					ssh root@192.168.3.46 <<EOF
+					cd /home/smart2go/011_cloud/Script/
+					bash docker_upgrade_F.sh S2G_Test Fv${env.VERSION}
+					bash docker_upgrade_F.sh S2G_Auto_Test Fv${env.VERSION}
+					bash docker_upgrade_F.sh orc_Test Fv${env.VERSION}
+					
+					if [ ! ${major_minor} = ${params.next_release} ]; then
+					    bash docker_upgrade_F.sh mob_Test Fv${env.VERSION}
+					fi
+
+					cd deployments/wars
+					rm -rf  Fv${env.VERSION}
+					EOF
+					"""
+					   .stripIndent()
+            }
+        }   
+    }
+}

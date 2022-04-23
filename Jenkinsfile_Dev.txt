@@ -1,0 +1,207 @@
+pipeline {
+    agent any
+		     tools {
+			     nodejs "nodejs-10-15"
+			 }
+       environment {
+		VERSION = "${env.BUILD_NUMBER}"
+       }
+    stages {
+        stage('Build') {
+			 steps {
+			     sh 'nodejs -v'
+				 sh 'npm -v'
+			     sh 'npm config set registry http://192.168.3.163:8081/repository/npm/'
+				 sh 'npm config list'
+			     sh 'npm install'
+				 sh 'npm run build:prod'				 
+			 }			
+        }
+	    
+	    stage('deploy') {	
+            steps {
+					echo "${env.VERSION}"
+					echo "Server Name  ${params.serverName}"
+					echo "Instance Name ${params.instanceName}"
+                 
+                 script {
+                 
+                 sh "cd /var/jenkins_home/workspace/Smart2Go_Front_Dev/ && tar zcvf webapp.tar.gz webapp/ "	
+                 
+                 switch (params.serverName) {
+                     case "3.78":
+                        echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+                 
+                        sh "ssh itts@192.168.3.78 mkdir -p /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz itts@192.168.3.78:/home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh itts@192.168.3.78 tar xvfz /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh itts@192.168.3.78 rm -rf /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+    					
+    					sh """
+    					ssh itts@192.168.3.78 <<EOF
+    					cd /home/itts/011_cloud/Script/
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent()
+					   
+                        break
+                 case "3.109": 
+                        
+                        sh "ssh smart2go@192.168.3.109 mkdir -p /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz smart2go@192.168.3.109:/home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh smart2go@192.168.3.109 tar xvfz /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh smart2go@192.168.3.109 rm -rf /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+    					
+    					sh """
+    					ssh smart2go@192.168.3.109 <<EOF
+    					cd /home/smart2go/cloud/Script/
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent()
+					   
+                        break
+                 case "4.9":
+                        echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+                        
+                		sh "ssh jenkins@192.168.4.9 mkdir -p /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz jenkins@192.168.4.9:/home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh jenkins@192.168.4.9 tar xvfz /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh jenkins@192.168.4.9 rm -rf /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+    				
+    					sh """
+    					ssh jenkins@192.168.4.9 <<EOF
+    					cd /home/smart2go/011_cloud/Script/
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent()   
+                        break
+                 case "90.9":
+                        echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+                        
+                        sh "ssh smart2go@192.168.90.9 mkdir -p /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz smart2go@192.168.90.9:/home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh smart2go@192.168.90.9 tar xvfz /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+    					sh "ssh smart2go@192.168.90.9 rm -rf /home/smart2go/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+    					
+    					sh """
+    					ssh smart2go@192.168.90.9 <<EOF
+    					cd /home/smart2go/011_cloud/Script/
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent() 
+                        break
+                 case "canada152":
+                        echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+                        
+                        break
+                 case "ken81":
+                        echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+                        
+                        sh "curl -X DELETE --insecure -u DBA:306090100 https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz"
+    					sh "curl -X PUT --insecure -u DBA:306090100 https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz --data-binary @/var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz"
+    					 
+    					sh """
+    					ssh jenkins@199.27.180.81 <<EOF
+    					mkdir /root/011_cloud/Script/deployments/front/Fv${env.VERSION}
+    					cd /root/011_cloud/Script/deployments/front/Fv${env.VERSION}
+    					wget --no-check-certificate --user=DBA --password=306090100  https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz
+    				    tar xvfz /root/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}/
+    				    rm -rf /root/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz
+    				    
+    					cd /root/011_cloud/Script/ 
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent()
+                        
+                        break
+                 case "ken91":
+					    echo "Start upgrading Instance ${params.instanceName} on ${params.serverName} server"
+					
+					    sh "curl -X DELETE --insecure -u DBA:306090100 https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz"
+    					sh "curl -X PUT --insecure -u DBA:306090100 https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz --data-binary @/var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz"
+    					 
+    					sh """
+    					ssh ntguser@199.27.180.91 <<EOF
+    					mkdir /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}
+    					cd /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}
+    					wget --no-check-certificate --user=DBA --password=306090100  https://ftp.ntgeg.com/remote.php/webdav/Jenkins-Dev-wars/webapp.tar.gz
+    				    tar xvfz /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}/
+    				    rm -rf /home/ntguser/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz
+    				    
+    					cd /home/ntguser/011_cloud/Script/ 
+    					bash docker_upgrade_F.sh ${params.instanceName} Fv${env.VERSION}
+    					cd deployments/wars
+    					rm -rf  Fv${env.VERSION}
+    					EOF
+    					"""
+    					   .stripIndent()
+					   
+                        break         
+                 default:
+                    echo "Start doing daily Jobs"
+                    
+					sh "ssh itts@192.168.3.78 mkdir -p /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"				
+					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz itts@192.168.3.78:/home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh itts@192.168.3.78 tar xvfz /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh itts@192.168.3.78 rm -rf /home/itts/011_cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+					
+					sh """
+					ssh itts@192.168.3.78 <<EOF
+					cd /home/itts/011_cloud/Script/
+					bash docker_upgrade_F.sh S2G_Test Fv${env.VERSION}
+					cd deployments/wars
+					rm -rf  Fv${env.VERSION}
+					EOF
+					"""
+					   .stripIndent()
+					   
+					
+					sh "ssh smart2go@192.168.3.109 mkdir -p /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "scp /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz smart2go@192.168.3.109:/home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh smart2go@192.168.3.109 tar xvfz /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz -C /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/"
+					sh "ssh smart2go@192.168.3.109 rm -rf /home/smart2go/cloud/Script/deployments/front/Fv${env.VERSION}/webapp.tar.gz"
+					
+					sh """
+					ssh smart2go@192.168.3.109 <<EOF
+					cd /home/smart2go/cloud/Script/
+					bash docker_upgrade_F.sh mob_dev Fv${env.VERSION}
+					cd deployments/wars
+					rm -rf  Fv${env.VERSION}
+					EOF
+					"""
+					   .stripIndent()
+                 }
+                 
+                 sh "rm -rf /var/jenkins_home/workspace/Smart2Go_Front_Dev/webapp.tar.gz"
+                 
+                }
+                
+            }
+        }
+        
+        stage ('Invoke_Smart2Go_Dev_pipeline') {
+            steps {
+                build job: 'Smart2Go_Dev', parameters: [
+                string(name: 'serverName', value: params.serverName),
+                string(name: 'instanceName', value: params.instanceName)
+                ]
+            }
+        }
+   
+    }
+}
